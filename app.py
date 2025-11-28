@@ -242,7 +242,8 @@ if __name__ == "__main__":
                         response,
                         audio_prompt_path=args.voice,
                         exaggeration=dynamic_exaggeration,
-                        cfg_weight=dynamic_cfg
+                        cfg_weight=dynamic_cfg,
+                        language=language
                     )
 
                 console.print(f"[cyan]Assistant: {response}")

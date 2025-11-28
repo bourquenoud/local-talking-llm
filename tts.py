@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import torchaudio as ta
 from chatterbox.tts import ChatterboxTTS
+from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
 warnings.filterwarnings(
     "ignore",
@@ -37,7 +38,7 @@ class TextToSpeechService:
             self.device = "cpu"
 
         self._patch_torch_load()
-        self.model = ChatterboxTTS.from_pretrained(device=self.device)
+        self.model = ChatterboxMultilingualTTS.from_pretrained(device=self.device)
         self.sample_rate = self.model.sr
 
     def _patch_torch_load(self):
