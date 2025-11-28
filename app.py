@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import time
 import threading
 import numpy as np
@@ -15,7 +17,7 @@ from langchain_ollama import OllamaLLM
 from tts import TextToSpeechService
 
 console = Console()
-stt = whisper.load_model("base.en")
+stt = whisper.load_model("turbo")
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Local Voice Assistant with ChatterBox TTS")
@@ -31,7 +33,7 @@ tts = TextToSpeechService()
 
 # Modern prompt template using ChatPromptTemplate
 prompt_template = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful and friendly AI assistant. You are polite, respectful, and aim to provide concise responses of less than 20 words."),
+    ("system", "You are a helpful and friendly AI assistant. You are polite, respectful, and aim to provide concise responses of less than 20 words. You answer in the same language as the user."),
     MessagesPlaceholder(variable_name="history"),
     ("human", "{input}")
 ])
@@ -81,6 +83,30 @@ def record_audio(stop_event, data_queue):
         while not stop_event.is_set():
             time.sleep(0.1)
 
+def transcribe_mtl(audio_np: np.ndarray) -> tuple[str, str]:
+    """
+    Transcribes the given audio data using the Whisper Multilingual model.
+
+    Args:
+        audio_np (numpy.ndarray): The audio data to be transcribed.
+
+    Returns:
+        tuple: A tuple containing the detected language and the transcribed text.
+    """
+    # load audio and pad/trim it to fit 30 seconds
+    audio = whisper.pad_or_trim(audio_np)
+
+    # make log-Mel spectrogram and move to the same device as the model
+    mel = whisper.log_mel_spectrogram(audio, n_mels=stt.dims.n_mels).to(stt.device)
+
+    # detect the spoken language
+    _, probs = stt.detect_language(mel)
+    print(f"Detected language: {max(probs, key=probs.get)}")
+
+    # decode the audio
+    options = whisper.DecodingOptions()
+    result = whisper.decode(stt, mel, options)
+    return max(probs, key=probs.get), result.text.strip()
 
 def transcribe(audio_np: np.ndarray) -> str:
     """
@@ -94,8 +120,7 @@ def transcribe(audio_np: np.ndarray) -> str:
     """
     result = stt.transcribe(audio_np, fp16=False)  # Set fp16=True if using a GPU
     text = result["text"].strip()
-    return text
-
+    return "en", text
 
 def get_llm_response(text: str) -> str:
     """
@@ -201,8 +226,8 @@ if __name__ == "__main__":
 
             if audio_np.size > 0:
                 with console.status("Transcribing...", spinner="dots"):
-                    text = transcribe(audio_np)
-                console.print(f"[yellow]You: {text}")
+                    language, text = transcribe_mtl(audio_np)
+                console.print(f"[yellow]You <{language}>: {text}")
 
                 with console.status("Generating response...", spinner="dots"):
                     response = get_llm_response(text)

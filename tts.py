@@ -57,12 +57,13 @@ class TextToSpeechService:
 
         torch.load = patched_torch_load
 
-    def synthesize(self, text: str, audio_prompt_path: str | None = None, exaggeration: float = 0.5, cfg_weight: float = 0.5):
+    def synthesize(self, text: str, language: str, audio_prompt_path: str | None = None, exaggeration: float = 0.5, cfg_weight: float = 0.5):
         """
         Synthesizes audio from the given text using ChatterBox TTS.
 
         Args:
             text (str): The input text to be synthesized.
+            language (str): The language of the input text.
             audio_prompt_path (str, optional): Path to audio file for voice cloning. Defaults to None.
             exaggeration (float, optional): Emotion exaggeration control (0-1). Defaults to 0.5.
             cfg_weight (float, optional): Control for pacing and delivery. Defaults to 0.5.
@@ -74,19 +75,21 @@ class TextToSpeechService:
             text,
             audio_prompt_path=audio_prompt_path,
             exaggeration=exaggeration,
-            cfg_weight=cfg_weight
+            cfg_weight=cfg_weight,
+            lang=language
         )
 
         # Convert tensor to numpy array format compatible with sounddevice
         audio_array = wav.squeeze().cpu().numpy()
         return self.sample_rate, audio_array
 
-    def long_form_synthesize(self, text: str, audio_prompt_path: str | None = None, exaggeration: float = 0.5, cfg_weight: float = 0.5):
+    def long_form_synthesize(self, text: str, language: str, audio_prompt_path: str | None = None, exaggeration: float = 0.5, cfg_weight: float = 0.5):
         """
         Synthesizes audio from the given long-form text using ChatterBox TTS.
 
         Args:
             text (str): The input text to be synthesized.
+            language (str): The language of the input text.
             audio_prompt_path (str, optional): Path to audio file for voice cloning. Defaults to None.
             exaggeration (float, optional): Emotion exaggeration control (0-1). Defaults to 0.5.
             cfg_weight (float, optional): Control for pacing and delivery. Defaults to 0.5.
@@ -103,7 +106,8 @@ class TextToSpeechService:
                 sent,
                 audio_prompt_path=audio_prompt_path,
                 exaggeration=exaggeration,
-                cfg_weight=cfg_weight
+                cfg_weight=cfg_weight,
+                language=language
             )
             pieces += [audio_array, silence.copy()]
 
